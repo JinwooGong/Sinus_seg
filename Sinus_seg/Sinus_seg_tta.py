@@ -5,11 +5,12 @@ import trimesh
 import torch
 import numpy as np
 import time
+from tqdm import tqdm
 from scipy import ndimage
 from skimage import morphology, measure
 
-from utils import sampling, load_scan, cropping_roi
-from utils.file_manager import join
+from utils import sampling, load_scan, cropping_roi, dice
+from utils import file_manager
 from predictor import predictor
 
 
@@ -152,7 +153,7 @@ def process_volume_data(data, properties):
     return processed_volume
     
 
-def save_stl(image_arr, output_path, properties, cropping:bool=False, smoothing:bool=False):
+def save_stl(image_arr, output_path, properties, cropping:bool=False, smoothing:bool=False, iterations = 300):
     
     # vertex 좌표 조정 (DICOM 좌표계에 맞춤)
     pixel_spacing = properties['pixel_spacing']
@@ -190,7 +191,8 @@ def save_stl(image_arr, output_path, properties, cropping:bool=False, smoothing:
     
     # Smoothing 적용 (필요한 경우)
     if smoothing:
-        mesh_obj = trimesh.smoothing.filter_taubin(mesh_obj, iterations=300, nu=0.2,lamb=0.53)
+        mesh_obj = trimesh.smoothing.filter_taubin(mesh_obj, iterations=iterations, nu=0.2,lamb=0.53)
+        # mesh_obj = trimesh.smoothing.filter_taubin(mesh_obj, iterations=100, nu=0.2,lamb=0.53)
     
     # STL 파일로 저장
     mesh_obj.export(output_path)
@@ -220,71 +222,71 @@ def extract_path_prefix(full_path, target_folder='Sinus'):
         print(f"Warning: '{target_folder}' not found in the path. Returning original path.")
         return full_path
     
-def main(exe_path, input_path, cropping):
+def main(input_path, cropping):
     factor = 4
-    print("factor:", factor)
+    # print("factor:", factor)
     # cropping=False
-    start_time = time.time()
+    # start_time = time.time()
     input_path = input_path.replace("\\", "/")
-    running_path = os.path.abspath(__file__)
+    # running_path = os.path.abspath(__file__)
     
-    root_path = extract_path_prefix(exe_path, target_folder="Sinus")
+    # root_path = extract_path_prefix(exe_path, target_folder="Sinus")
     
-    print(f"\nDicom path: {input_path}")
-    print(f"현재 실행 중인 파일의 경로: {running_path}")
-    print(f"Sinus 경로: {root_path}")
+    # print(f"\nDicom path: {input_path}")
+    # print(f"현재 실행 중인 파일의 경로: {running_path}")
+    # print(f"Sinus 경로: {root_path}")
         
     # Load Data
-    num_slice, original_data, data_properties = load_scan.load_scan(input_path)
-    print(f"Original DICOM shape: {original_data.shape}")
-    
+    dataset, label = file_manager.load_data(input_path)
+    num_slice, original_data, data_properties = dataset['num_slices'], dataset['data'], dataset['properties']
+    # print(f"Original DICOM shape: {original_data.shape}")
+    # save_stl(nrrd_arr, join(input_path,'sinus_label.stl'), data_properties, cropping=False, smoothing=True, iterations=100)
     # save_stl(original_data, join(input_path,'image.stl'), data_properties, threshold=threshold)
     
     thickness = data_properties['slice_thickness']
     total_length = num_slice*thickness
     data = original_data.copy()
     
-    load_data_time = time.time()
-    print(f"\nData load time: {format_time(load_data_time-start_time)}")
-    print(f"Total length: {total_length}")
+    # load_data_time = time.time()
+    # print(f"\nData load time: {format_time(load_data_time-start_time)}")
+    # print(f"Total length: {total_length}")
     if total_length > 130:
         print("\nStitchg data !!")
-        # cropping = True
+        cropping = True
     else:
         print("\n1 Tile data !!")
         print("1 tile data can't use cropping.")
         cropping = False
         
-    if cropping:
-        print("\nUse cropping...")
+    # if cropping:
+        # print("\nUse cropping...")
         
-    plans_file = join(root_path,'plans_lowres.json')
-    weight_dir = join(root_path,"trained_model", "lowres_checkpoint_final.pth")
+    plans_file = 'plans_lowres.json'
+    weight_dir = "./trained_model/lowres_checkpoint_final.pth"
     configuration = "3d_lowres"
 
     if cropping and total_length > 130:
+        pass
         # stitching data
-        print("\n########## Data Cropping ##########")
-        print(f"Before cropping data shape: {data.shape}")
+        # print("\n########## Data Cropping ##########")
+        # print(f"Before cropping data shape: {data.shape}")
         
-        model_path = "C:/Dentium/utils/Sinus/trained_model/landmark_9class.pt"
-        print(f"Landmark model path: {model_path}")
-        data, start, end = cropping_roi.image_cropping(data, model_path)
+        # model_path = "C:/Dentium/utils/Sinus/trained_model/landmark_9class.pt"
+        # print(f"Landmark model path: {model_path}")
+        # data, start, end = cropping_roi.image_cropping(data, model_path)
 
-        data_properties['start_pos'] = start
-        data_properties['end_pos'] = end
-        
-        cropping = True
+        # data_properties['start_pos'] = start
+        # data_properties['end_pos'] = end
 
     else:
         # 1Tile data 
         print("\n########## Data Downsampling ##########")
-        print(f"Before downsampling shape: {data.shape}")
+        # print(f"Before downsampling shape: {data.shape}")
         data, data_properties = sampling.downsampling_image(data, data_properties, factor=factor, order=3)
-        print(f"After downsampling shape: {data.shape}")
+        # print(f"After downsampling shape: {data.shape}")
         
-    print(f"\nPlans file: {plans_file}")
-    print(f"Model path: {weight_dir}")
+    # print(f"\nPlans file: {plans_file}")
+    # print(f"Model path: {weight_dir}")
     
     prediction_image = predictor(data, 1, 3, 
                                  weight_dir, data_properties, plans_file, configuration,
@@ -293,8 +295,8 @@ def main(exe_path, input_path, cropping):
         
     # 후처리    
     # if use_post:
-    #     prediction_image[prediction_image == 2] = 1
-    #     prediction_image = post_processing_v2(prediction_image)
+    prediction_image[prediction_image == 2] = 1
+    prediction_image = post_processing_v2(prediction_image)
 
     # Dilation
     # prediction_image = dilate_3d_volume(prediction_image)
@@ -302,29 +304,37 @@ def main(exe_path, input_path, cropping):
     if not cropping:
         prediction_image = sampling.upsampling(prediction_image, data_properties, factor, 0)
     
-    pred_time = time.time()
-    print(f"\n예측 생성 시간: {format_time(pred_time-load_data_time)}")
+    # pred_time = time.time()
+    # print(f"\n예측 생성 시간: {format_time(pred_time-load_data_time)}")
         
-    pred_output_path = join(input_path, f"predicted_sinus.stl")
-    if not os.path.isfile(pred_output_path):
-        save_stl(prediction_image, pred_output_path, data_properties, cropping, smoothing=True)
+    # pred_output_path = join(input_path, f"predicted_sinus.stl")
+    # if not os.path.isfile(pred_output_path):
+    #     save_stl(prediction_image, pred_output_path, data_properties, cropping, smoothing=True)
     
     # if cropping:
-    #     pred_output_path = join(input_path, f"predicted_sinus_crop_factor{factor}.stl")
+    #     pred_output_path = join(input_path, "sinus_pred_crop.stl")
     # else:
-    #     pred_output_path = join(input_path, f"predicted_sinus_factor{factor}.stl")
+    #     pred_output_path = join(input_path, "sinus_pred_whole.stl")
     # save_stl(prediction_image, pred_output_path, data_properties, cropping, smoothing=True)
     
-    end_time = time.time()
-    execution_time = end_time - start_time
-    print(f"STL 생성 시간: {format_time(end_time - pred_time)}")
-    print(f"실행 시간: {format_time(execution_time)}")
+    # end_time = time.time()
+    # execution_time = end_time - start_time
+    # print(f"STL 생성 시간: {format_time(end_time - pred_time)}")
+    dsc = dice.get_dice(prediction_image, label)
     
-# if __name__ == '__main__':
+    # print(f"실행 시간: {format_time(execution_time)}")
+    
+    return dsc
 
-    # main(
-    #     exe_path="C:\\Dentium\\utils\\Sinus\\exe\\Sinus.exe",
-    #     # input_path="C:\\Users\\sw2\\source\\repos\\Sinus\\x64\\Release\\dicom_test\\12_standard_Well",
-    #     input_path= "D:\\2차년도\\골이식재양_dev\\GWNU 10 cases SE\\4\\before",
-    #     cropping=1
-    #     )
+if __name__ == '__main__':
+    
+    if len(sys.argv) < 2:
+        raise "Please input dicom file path"
+    
+    dicom_folder = sys.argv[1].replace('\\', '/')
+    print(dicom_folder)
+    dsc = main(
+        input_path= dicom_folder,
+        cropping=0
+        )
+    print(dsc)
