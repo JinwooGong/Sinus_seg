@@ -275,7 +275,7 @@ def main(input_path):
         model_path = "C:/Dentium/utils/Sinus/trained_model/landmark_9class.pt"
         print(f"Landmark model path: {model_path}")
         data, start, end = cropping_roi.image_cropping(data, model_path)
-
+        label = cropping_roi.label_cropping(label,start, end)
         data_properties['start_pos'] = start
         data_properties['end_pos'] = end
 
@@ -320,7 +320,7 @@ def main(input_path):
     
     end_time = time.time()
     execution_time = end_time - start_time
-    print(f"STL 생성 시간: {format_time(end_time - pred_time)}")
+    # print(f"STL 생성 시간: {format_time(end_time - pred_time)}")
     dsc = dice.get_dice(prediction_image, label)
     
     print(f"실행 시간: {format_time(execution_time)}")
@@ -336,6 +336,5 @@ if __name__ == '__main__':
     print(dicom_folder)
     dsc = main(
         input_path= dicom_folder,
-        cropping=0
         )
     print(dsc)
