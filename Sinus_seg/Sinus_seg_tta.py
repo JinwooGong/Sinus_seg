@@ -11,6 +11,7 @@ from skimage import morphology, measure
 
 from utils import sampling, load_scan, cropping_roi, dice
 from utils import file_manager
+from utils.file_manager import join
 from predictor import predictor
 
 
@@ -226,7 +227,7 @@ def main(input_path, cropping):
     factor = 4
     # print("factor:", factor)
     # cropping=False
-    # start_time = time.time()
+    start_time = time.time()
     input_path = input_path.replace("\\", "/")
     # running_path = os.path.abspath(__file__)
     
@@ -240,16 +241,16 @@ def main(input_path, cropping):
     dataset, label = file_manager.load_data(input_path)
     num_slice, original_data, data_properties = dataset['num_slices'], dataset['data'], dataset['properties']
     # print(f"Original DICOM shape: {original_data.shape}")
-    # save_stl(nrrd_arr, join(input_path,'sinus_label.stl'), data_properties, cropping=False, smoothing=True, iterations=100)
+    save_stl(label, join(input_path,'sinus_label.stl'), data_properties, cropping=False, smoothing=True, iterations=100)
     # save_stl(original_data, join(input_path,'image.stl'), data_properties, threshold=threshold)
     
     thickness = data_properties['slice_thickness']
     total_length = num_slice*thickness
     data = original_data.copy()
     
-    # load_data_time = time.time()
-    # print(f"\nData load time: {format_time(load_data_time-start_time)}")
-    # print(f"Total length: {total_length}")
+    load_data_time = time.time()
+    print(f"\nData load time: {format_time(load_data_time-start_time)}")
+    print(f"Total length: {total_length}")
     if total_length > 130:
         print("\nStitchg data !!")
         cropping = True
@@ -304,25 +305,25 @@ def main(input_path, cropping):
     if not cropping:
         prediction_image = sampling.upsampling(prediction_image, data_properties, factor, 0)
     
-    # pred_time = time.time()
-    # print(f"\n예측 생성 시간: {format_time(pred_time-load_data_time)}")
+    pred_time = time.time()
+    print(f"\n예측 생성 시간: {format_time(pred_time-load_data_time)}")
         
-    # pred_output_path = join(input_path, f"predicted_sinus.stl")
-    # if not os.path.isfile(pred_output_path):
-    #     save_stl(prediction_image, pred_output_path, data_properties, cropping, smoothing=True)
+    pred_output_path = join(input_path, f"predicted_sinus.stl")
     
     # if cropping:
     #     pred_output_path = join(input_path, "sinus_pred_crop.stl")
     # else:
     #     pred_output_path = join(input_path, "sinus_pred_whole.stl")
-    # save_stl(prediction_image, pred_output_path, data_properties, cropping, smoothing=True)
+        
+    if not os.path.isfile(pred_output_path):
+        save_stl(prediction_image, pred_output_path, data_properties, cropping, smoothing=True)
     
-    # end_time = time.time()
-    # execution_time = end_time - start_time
-    # print(f"STL 생성 시간: {format_time(end_time - pred_time)}")
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"STL 생성 시간: {format_time(end_time - pred_time)}")
     dsc = dice.get_dice(prediction_image, label)
     
-    # print(f"실행 시간: {format_time(execution_time)}")
+    print(f"실행 시간: {format_time(execution_time)}")
     
     return dsc
 
