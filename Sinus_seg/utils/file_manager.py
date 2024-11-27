@@ -27,27 +27,27 @@ def load_scan(path):
     def most_common(lst):
         return max(set(lst), key=lst.count)
     
-    # def apply_window(slices, arr, window_center=400, window_width=1800, save_path=None):
-    #     new_arr = []
+    def apply_window(slices, arr, window_center=400, window_width=1800, save_path=None):
+        new_arr = []
         
-    #     for dicom, image in zip(slices,arr):
-    #         # Apply windowing
-    #         window_min = dicom.WindowCenter - dicom.WindowWidth/2
-    #         window_max = dicom.WindowCenter + dicom.WindowWidth/2
+        for dicom, image in zip(slices,arr):
+            # Apply windowing
+            window_min = dicom.WindowCenter - dicom.WindowWidth/2
+            window_max = dicom.WindowCenter + dicom.WindowWidth/2
             
-    #         # Apply rescale slope and intercept if present
-    #         if hasattr(dicom, 'RescaleSlope') and hasattr(dicom, 'RescaleIntercept'):
-    #             image = image * dicom.RescaleSlope + dicom.RescaleIntercept
-    #         # Clip the image to the window
-    #         image = np.clip(image, window_min, window_max)
+            # Apply rescale slope and intercept if present
+            if hasattr(dicom, 'RescaleSlope') and hasattr(dicom, 'RescaleIntercept'):
+                image = image * dicom.RescaleSlope + dicom.RescaleIntercept
+            # Clip the image to the window
+            image = np.clip(image, window_min, window_max)
         
-    #         # # Normalize to 0-255
-    #         # image = ((image - window_min) / window_width * 255.0)
-    #         # image = np.clip(image, 0, 255)
+            # # Normalize to 0-255
+            # image = ((image - window_min) / window_width * 255.0)
+            # image = np.clip(image, 0, 255)
             
-    #         new_arr.append(image)
+            new_arr.append(image)
        
-    #     return np.array(new_arr).astype(np.float32)
+        return np.array(new_arr).astype(np.float32)
     
     paths = glob(os.path.join(path,'*.dcm'))
     slices = [pydicom.dcmread(s) for s in paths] 
