@@ -220,10 +220,10 @@ def extract_path_prefix(full_path, target_folder='Sinus'):
         print(f"Warning: '{target_folder}' not found in the path. Returning original path.")
         return full_path
     
-def main(exe_path, input_path, cropping):
+def main(exe_path, input_path):
     factor = 4
     print("factor:", factor)
-    # cropping=False
+    cropping=False
     start_time = time.time()
     input_path = input_path.replace("\\", "/")
     running_path = os.path.abspath(__file__)
@@ -249,7 +249,7 @@ def main(exe_path, input_path, cropping):
     print(f"Total length: {total_length}")
     if total_length > 130:
         print("\nStitchg data !!")
-        # cropping = True
+        cropping = True
     else:
         print("\n1 Tile data !!")
         print("1 tile data can't use cropping.")
@@ -293,8 +293,8 @@ def main(exe_path, input_path, cropping):
         
     # 후처리    
     # if use_post:
-    #     prediction_image[prediction_image == 2] = 1
-    #     prediction_image = post_processing_v2(prediction_image)
+    prediction_image[prediction_image == 2] = 1
+    prediction_image = post_processing_v2(prediction_image)
 
     # Dilation
     # prediction_image = dilate_3d_volume(prediction_image)

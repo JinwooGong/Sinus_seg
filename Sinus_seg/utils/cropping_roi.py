@@ -135,6 +135,9 @@ def image_cropping(data, model_path):
     left = pl_x
     bottom = 100
     
+    if abs(top-ans_z) <=50:
+        top += 50
+    
     right, left = (right , left) if left > right else (left, right)
     start = (bottom, back, right) # z1, y1, x1
     end = (top, front, left) # z2, y2, x2

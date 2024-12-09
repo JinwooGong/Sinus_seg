@@ -241,7 +241,7 @@ def main(input_path):
     dataset, label = file_manager.load_data(input_path)
     num_slice, original_data, data_properties = dataset['num_slices'], dataset['data'], dataset['properties']
     # print(f"Original DICOM shape: {original_data.shape}")
-    # save_stl(label, join(input_path,'sinus_label.stl'), data_properties, cropping=False, smoothing=True, iterations=100)
+    
     # save_stl(original_data, join(input_path,'image.stl'), data_properties, threshold=threshold)
     
     thickness = data_properties['slice_thickness']
@@ -286,6 +286,10 @@ def main(input_path):
         data, data_properties = sampling.downsampling_image(data, data_properties, factor=factor, order=3)
         print(f"After downsampling shape: {data.shape}")
         
+    label_output = join(input_path,'sinus_label.stl')
+    print(label_output)
+    if not os.path.isfile(label_output):
+        save_stl(label, label_output, data_properties, cropping=cropping, smoothing=True, iterations=100)
     # print(f"\nPlans file: {plans_file}")
     # print(f"Model path: {weight_dir}")
     
@@ -308,19 +312,19 @@ def main(input_path):
     pred_time = time.time()
     print(f"\n예측 생성 시간: {format_time(pred_time-load_data_time)}")
         
-    # pred_output_path = join(input_path, f"predicted_sinus.stl")
+    pred_output_path = join(input_path, f"predicted_sinus.stl")
     
     # if cropping:
     #     pred_output_path = join(input_path, "sinus_pred_crop.stl")
     # else:
     #     pred_output_path = join(input_path, "sinus_pred_whole.stl")
         
-    # if not os.path.isfile(pred_output_path):
-    #     save_stl(prediction_image, pred_output_path, data_properties, cropping, smoothing=True)
+    if not os.path.isfile(pred_output_path):
+        save_stl(prediction_image, pred_output_path, data_properties, cropping, smoothing=True)
     
     end_time = time.time()
     execution_time = end_time - start_time
-    # print(f"STL 생성 시간: {format_time(end_time - pred_time)}")
+    print(f"STL 생성 시간: {format_time(end_time - pred_time)}")
     dsc = dice.get_dice(prediction_image, label)
     
     print(f"실행 시간: {format_time(execution_time)}")
@@ -337,4 +341,4 @@ if __name__ == '__main__':
     dsc = main(
         input_path= dicom_folder,
         )
-    print(dsc)
+    print(f"DSC: {dsc}")
